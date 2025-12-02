@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>30 DAYS PROGRAM - App Mode</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="overlay">
+    <header class="appbar">
+      <div class="title">
+        <div class="avatar" id="headerAvatar"><img src="https://i.ibb.co/0F2G1Gz/default-avatar.png" alt="avatar"></div>
+        <div>
+          <h1>30 DAYS PROGRAM</h1>
+          <div class="sub" id="headerName">Selamat Berlatih</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button id="profileBtn" class="btn-link">Profile</button>
+        <button id="darkToggle" class="btn-link" aria-label="toggle dark">🌙</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <div class="top-row">
+        <div>
+          <h2 style="margin:0">Progress Hari Ini</h2>
+          <div style="color:#333;opacity:0.8">Lihat perkembangan & catatan makanan</div>
+        </div>
+        <div style="text-align:right">
+          <canvas id="chartProgress" width="140" height="140"></canvas>
+          <div style="font-weight:700;margin-top:6px;text-align:center" id="pointsLabel">0 / 30</div>
+        </div>
+      </div>
+
+      <!-- GRID CARDS (desktop) -->
+      <section class="cardstack" id="cardstack"></section>
+
+      <!-- MOBILE VIEWER (slide) -->
+      <section class="viewer" id="viewer">
+        <div class="view" id="mobileView"></div>
+        <div class="controls-slide">
+          <button class="control-btn" id="prevBtn">‹ Sebelumnya</button>
+          <div style="flex:1"></div>
+          <button class="control-btn" id="nextBtn">Berikutnya ›</button>
+        </div>
+      </section>
+
+    </main>
+
+    <div class="bottom-nav" id="bottomNav">
+      <div class="nav-item active" data-view="home">🏠 Home</div>
+      <div class="nav-item" data-view="calendar">📅 Kalender</div>
+      <div class="nav-item" data-view="progress">📊 Progress</div>
+      <div class="nav-item" data-view="settings">⚙️ Pengaturan</div>
+    </div>
+
+    <div class="notif" id="notif">Latihan diselesaikan! 🎉</div>
+
+    <!-- Profile modal -->
+    <div class="modal" id="profileModal">
+      <h3>Profil Kamu</h3>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
+        <img id="modalAvatar" src="https://i.ibb.co/0F2G1Gz/default-avatar.png" alt="avatar">
+        <div style="flex:1">
+          <input id="nameInput" placeholder="Nama kamu" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd" />
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <input type="file" id="avatarFile" accept="image/*" />
+            <button id="saveProfile" class="control-btn">Simpan</button>
+            <button id="closeProfile" class="control-btn">Tutup</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
