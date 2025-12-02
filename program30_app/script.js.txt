@@ -1,0 +1,139 @@
+// ========== Data model & persistence (C1) ==========
+const STORAGE_KEY = 'program30_v2';
+const DEFAULT_EX = [
+  'Wall push-up 3×10, Knee push-up 2×8, Chest press 3×12, Glute bridge 3×15',
+  'Chest fly 3×12, Hip thrust 3×12, Sumo squat 3×12, Clamshell 2×15/kaki',
+  'Push-up 3×10, Fire hydrant 3×12/kaki, Jumping jacks 1 menit, Superman 3×15',
+  'Knee push-up 3×12, Chest press 3×12, Glute bridge 3×15, Side plank 20 detik',
+  'Wall push-up 3×12, Donkey kick 3×15/kaki, Hip thrust 3×15, Lunge 3×12/kaki'
+];
+
+function load(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){return null}
+}
+function save(model){ localStorage.setItem(STORAGE_KEY, JSON.stringify(model)); }
+
+let model = load();
+if(!model){
+  model = Array.from({length:30},(_,i)=>({day:i+1,exercise:DEFAULT_EX[i%DEFAULT_EX.length],done:false,meals:['','','']}));
+  save(model);
+}
+
+// ========== Render ==========
+const cardstack = document.getElementById('cardstack');
+const mobileView = document.getElementById('mobileView');
+function makeExerciseImage(ex){
+  // choose stylized 3D character images (style C) from unsplash-like sources (royalty-free placeholders)
+  if(/push/i.test(ex)) return 'https://images.unsplash.com/photo-1600880292089-90e28a61a9bf?auto=format&fit=crop&w=400&q=60';
+  if(/hip|thrust|glute/i.test(ex)) return 'https://images.unsplash.com/photo-1517964106900-3f9b8d6a5ea1?auto=format&fit=crop&w=400&q=60';
+  if(/squat|lunge/i.test(ex)) return 'https://images.unsplash.com/photo-1526406915892-93b9d5b6b6c7?auto=format&fit=crop&w=400&q=60';
+  return 'https://images.unsplash.com/photo-1594737625785-0b4a4f37d40a?auto=format&fit=crop&w=400&q=60';
+}
+
+function render(){
+  cardstack.innerHTML='';
+  mobileView.innerHTML='';
+  model.forEach(item=>{
+    const img = makeExerciseImage(item.exercise);
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `
+      <h2>Hari ${item.day}</h2>
+      <div class="exercise"><img src="${img}" alt="ex"><div><div style='font-weight:700'>Latihan</div><div style='opacity:0.8'>${item.exercise}</div></div></div>
+      <div style='margin-top:10px'><button class='btn-done' data-day='${item.day}'>${item.done? '✅ Selesai':'Tandai Selesai'}</button></div>
+      <div style='margin-top:12px'><strong>Catatan Makanan</strong>
+        <textarea data-day='${item.day}' data-meal='0' placeholder='Sarapan'>${escapeHtml(item.meals[0])}</textarea>
+        <textarea data-day='${item.day}' data-meal='1' placeholder='Makan Siang'>${escapeHtml(item.meals[1])}</textarea>
+        <textarea data-day='${item.day}' data-meal='2' placeholder='Makan Malam'>${escapeHtml(item.meals[2])}</textarea>
+      </div>
+    `;
+    cardstack.appendChild(card);
+
+    // mobile view card
+    const m = card.cloneNode(true); m.style.maxWidth='420px'; mobileView.appendChild(m);
+  });
+  attach(); updateChartAndPoints();
+}
+
+function escapeHtml(s){ return s==null? '': String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ========== attach listeners ==========
+function attach(){
+  document.querySelectorAll('.btn-done').forEach(b=>{
+    b.onclick = ()=>{
+      const day = Number(b.dataset.day);
+      model[day-1].done = !model[day-1].done;
+      save(model); render();
+      // audio motivation (C5) via speechSynthesis
+      if(model[day-1].done){
+        speakRandomMotivation(); showNotif();
+      }
+    }
+  });
+  document.querySelectorAll('textarea').forEach(ta=>{
+    ta.oninput = ()=>{
+      const day = Number(ta.dataset.day); const m = Number(ta.dataset.meal);
+      model[day-1].meals[m] = ta.value; save(model); updateChartAndPoints();
+    }
+  });
+}
+
+// ========== Chart (progress) ==========
+const ctx = document.getElementById('chartProgress').getContext('2d');
+const chart = new Chart(ctx,{type:'doughnut',data:{labels:['Selesai','Belum'],datasets:[{data:[0,100],backgroundColor:['#10b981','#e5e7eb']} ]},options:{cutout:'70%'}});
+
+function updateChartAndPoints(){
+  const done = model.filter(x=>x.done).length; const percent = Math.round(done/30*100);
+  chart.data.datasets[0].data=[percent,100-percent]; chart.update();
+  document.getElementById('pointsLabel').textContent = `${done} / 30`;
+}
+
+// ========== Mobile slide logic (C2) ==========
+let currentIndex = 0; const mobileCards = () => document.querySelectorAll('#mobileView .card');
+document.getElementById('nextBtn').addEventListener('click',()=>{ if(currentIndex < 29) currentIndex++; showMobileCard(); });
+document.getElementById('prevBtn').addEventListener('click',()=>{ if(currentIndex > 0) currentIndex--; showMobileCard(); });
+
+function showMobileCard(){ const cards = mobileCards(); cards.forEach((c,i)=>{ c.style.display = i===currentIndex? 'block':'none' }); }
+
+// add swipe
+let startX=0; const mv = document.getElementById('mobileView');
+mv.addEventListener('touchstart',e=> startX = e.touches[0].clientX);
+mv.addEventListener('touchend',e=>{ const dx = e.changedTouches[0].clientX - startX; if(dx < -40 && currentIndex < 29){ currentIndex++; showMobileCard(); } else if(dx > 40 && currentIndex > 0){ currentIndex--; showMobileCard(); } });
+
+// ========== Profile (C3) ==========
+const profileBtn = document.getElementById('profileBtn'); const modal = document.getElementById('profileModal');
+const avatarFile = document.getElementById('avatarFile'); const modalAvatar = document.getElementById('modalAvatar');
+const nameInput = document.getElementById('nameInput'); const headerAvatar = document.getElementById('headerAvatar'); const headerName = document.getElementById('headerName');
+
+// load profile
+const PROFILE_KEY = 'program30_profile_v1';
+function loadProfile(){
+  try{ const p = JSON.parse(localStorage.getItem(PROFILE_KEY)); if(p){ headerName.textContent = p.name || 'Selamat Berlatih'; modalAvatar.src = p.avatar || modalAvatar.src; headerAvatar.querySelector('img').src = p.avatar || headerAvatar.querySelector('img').src; nameInput.value = p.name || ''; }}catch(e){}
+}
+profileBtn.addEventListener('click',()=>{ modal.classList.add('show'); });
+document.getElementById('closeProfile').addEventListener('click',()=> modal.classList.remove('show'));
+
+avatarFile.addEventListener('change',()=>{
+  const f = avatarFile.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = ()=>{ modalAvatar.src = reader.result; }; reader.readAsDataURL(f);
+});
+document.getElementById('saveProfile').addEventListener('click',()=>{
+  const data = { name: nameInput.value || 'Selamat Berlatih', avatar: modalAvatar.src };
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(data)); loadProfile(); modal.classList.remove('show');
+});
+
+// ========== Audio Motivation (C5) ==========
+const MOTIVATIONS = [
+  'Bagus! Tetap konsisten!', 'Hebat — kamu menyelesaikan latihan hari ini!', 'Mantap! Jaga ritme dan istirahat cukup.', 'Luar biasa! Terus ke hari berikutnya.'
+];
+function speak(text){ if('speechSynthesis' in window){ const u = new SpeechSynthesisUtterance(text); u.lang='id-ID'; speechSynthesis.speak(u);} }
+function speakRandomMotivation(){ const t = MOTIVATIONS[Math.floor(Math.random()*MOTIVATIONS.length)]; speak(t); }
+
+// ========== Dark mode toggle ==========
+const darkToggle = document.getElementById('darkToggle'); darkToggle.addEventListener('click',()=>{ document.documentElement.classList.toggle('dark'); darkToggle.textContent = document.documentElement.classList.contains('dark')? '☀️':'🌙'; });
+
+// init
+render(); showMobileCard(); loadProfile();
+
+// expose for debugging
+window._progModel = model;
